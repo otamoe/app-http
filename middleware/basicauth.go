@@ -29,12 +29,12 @@ func (basicAuth *BasicAuth) Handler(next http.Handler) http.Handler {
 
 		// 用户名不存在
 		var password string
-		if password, ok = basicAuth.Auths[username]; !ok {
+		if password, ok = basicAuth.Auths[inputUsername]; !ok {
 			return
 		}
 
 		// 密码不匹配
-		if value != password {
+		if password != inputPassword {
 			ok = false
 			return
 		}
