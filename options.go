@@ -143,7 +143,7 @@ func Handler(hosts []string, index int, handler HandlerFunc) fx.Option {
 
 func DefaultOptions() *Options {
 	return &Options{
-		Addr:                   8080,
+		Addr:                   ":8080",
 		ReadTimeout:            time.Second * 18000,
 		ReadHeaderTimeout:      time.Second * 10,
 		WriteTimeout:           time.Second * 18000,
