@@ -1,7 +1,6 @@
 package apphttp
 
 import (
-	"context"
 	"net/http"
 	"time"
 )
@@ -13,7 +12,7 @@ type (
 	}
 )
 
-func (server *Server) Start(ctx context.Context) (err error) {
+func (server *Server) Start() (err error) {
 	t := time.NewTimer(server.options.StartTimeout)
 	defer t.Stop()
 	errc := make(chan error, 1)
