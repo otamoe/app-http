@@ -1,38 +1,32 @@
 package apphttp
 
 import (
+	"context"
 	"crypto/tls"
 	"log"
+	"net"
 	"net/http"
 	"time"
-
-	"go.uber.org/fx"
 )
 
 type (
 	Options struct {
-		Addr                   string
-		ErrorLog               *log.Logger
-		ReadTimeout            time.Duration
-		ReadHeaderTimeout      time.Duration
-		WriteTimeout           time.Duration
-		IdleTimeout            time.Duration
-		RequestTimeout         time.Duration
-		ShutdownTimeout        time.Duration
-		ShutdownRequestTimeout time.Duration
-		MaxHeaderBytes         int
-		TLSConfig              *tls.Config
-		Handlers               []HandlerOption
-	}
-	InOptions struct {
-		fx.In
-		Options []Option `group:"httpOptions"`
+		Addr              string
+		ErrorLog          *log.Logger
+		ReadTimeout       time.Duration
+		ReadHeaderTimeout time.Duration
+		WriteTimeout      time.Duration
+		IdleTimeout       time.Duration
+		RequestTimeout    time.Duration
+		StartTimeout      time.Duration
+		MaxHeaderBytes    int
+		TLSConfig         *tls.Config
+		BaseContext       func(net.Listener) context.Context
+		ConnContext       func(ctx context.Context, c net.Conn) context.Context
+
+		Handlers []HandlerOption
 	}
 
-	OutOption struct {
-		fx.Out
-		Option Option `group:"httpOptions"`
-	}
 	Option func(options *Options) error
 
 	HandlerFunc func(next http.Handler) http.Handler
@@ -44,112 +38,95 @@ type (
 	}
 )
 
-func Addr(addr string) fx.Option {
-	return fx.Provide(func() (out OutOption) {
-		out.Option = func(options *Options) error {
-			options.Addr = addr
-			return nil
-		}
-		return
-	})
+func Addr(addr string) Option {
+	return func(options *Options) error {
+		options.Addr = addr
+		return nil
+	}
 }
-func ErrorLog(logger *log.Logger) fx.Option {
-	return fx.Provide(func() (out OutOption) {
-		out.Option = func(options *Options) error {
-			options.ErrorLog = logger
-			return nil
-		}
-		return
-	})
+func ErrorLog(logger *log.Logger) Option {
+	return func(options *Options) error {
+		options.ErrorLog = logger
+		return nil
+	}
 }
 
-func ReadTimeout(t time.Duration) fx.Option {
-	return fx.Provide(func() (out OutOption) {
-		out.Option = func(options *Options) error {
-			options.ReadTimeout = t
-			return nil
-		}
-		return
-	})
+func ReadTimeout(t time.Duration) Option {
+	return func(options *Options) error {
+		options.ReadTimeout = t
+		return nil
+	}
 }
 
-func ReadHeaderTimeout(t time.Duration) fx.Option {
-	return fx.Provide(func() (out OutOption) {
-		out.Option = func(options *Options) error {
-			options.ReadHeaderTimeout = t
-			return nil
-		}
-		return
-	})
+func ReadHeaderTimeout(t time.Duration) Option {
+	return func(options *Options) error {
+		options.ReadHeaderTimeout = t
+		return nil
+	}
 }
 
-func WriteTimeout(t time.Duration) fx.Option {
-	return fx.Provide(func() (out OutOption) {
-		out.Option = func(options *Options) error {
-			options.WriteTimeout = t
-			return nil
-		}
-		return
-	})
+func WriteTimeout(t time.Duration) Option {
+	return func(options *Options) error {
+		options.WriteTimeout = t
+		return nil
+	}
 }
-func IdleTimeout(t time.Duration) fx.Option {
-	return fx.Provide(func() (out OutOption) {
-		out.Option = func(options *Options) error {
-			options.IdleTimeout = t
-			return nil
-		}
-		return
-	})
+func IdleTimeout(t time.Duration) Option {
+	return func(options *Options) error {
+		options.IdleTimeout = t
+		return nil
+	}
 }
 
-func MaxHeaderBytes(s int) fx.Option {
-	return fx.Provide(func() (out OutOption) {
-		out.Option = func(options *Options) error {
-			options.MaxHeaderBytes = s
-			return nil
-		}
-		return
-	})
+func MaxHeaderBytes(s int) Option {
+	return func(options *Options) error {
+		options.MaxHeaderBytes = s
+		return nil
+	}
 }
-func TLSConfig(s *tls.Config) fx.Option {
-	return fx.Provide(func() (out OutOption) {
-		out.Option = func(options *Options) error {
-			options.TLSConfig = s
-			return nil
-		}
-		return
-	})
+func TLSConfig(s *tls.Config) Option {
+	return func(options *Options) error {
+		options.TLSConfig = s
+		return nil
+	}
+
 }
 
-func ShutdownTimeout(b time.Duration) fx.Option {
-	return fx.Provide(func() (out OutOption) {
-		out.Option = func(options *Options) error {
-			options.ShutdownTimeout = b
-			return nil
-		}
-		return
-	})
+func StartTimeout(b time.Duration) Option {
+	return func(options *Options) error {
+		options.StartTimeout = b
+		return nil
+	}
+}
+func BaseContext(b func(net.Listener) context.Context) Option {
+	return func(options *Options) error {
+		options.BaseContext = b
+		return nil
+	}
 }
 
-func Handler(hosts []string, index int, handler HandlerFunc) fx.Option {
-	return fx.Provide(func() (out OutOption) {
-		out.Option = func(options *Options) error {
-			options.Handlers = append(options.Handlers, HandlerOption{Hosts: hosts, Index: index, Handler: handler})
-			return nil
-		}
-		return
-	})
+func ConnContext(b func(ctx context.Context, c net.Conn) context.Context) Option {
+	return func(options *Options) error {
+		options.ConnContext = b
+		return nil
+	}
+}
+
+func Handler(hosts []string, index int, handler HandlerFunc) Option {
+	return func(options *Options) error {
+		options.Handlers = append(options.Handlers, HandlerOption{Hosts: hosts, Index: index, Handler: handler})
+		return nil
+	}
 }
 
 func DefaultOptions() *Options {
 	return &Options{
-		Addr:                   ":8080",
-		ReadTimeout:            time.Second * 18000,
-		ReadHeaderTimeout:      time.Second * 10,
-		WriteTimeout:           time.Second * 18000,
-		IdleTimeout:            time.Second * 1800,
-		MaxHeaderBytes:         4096,
-		ShutdownTimeout:        time.Hour,
-		ShutdownRequestTimeout: time.Second * 15,
+		Addr:              ":8080",
+		ReadTimeout:       time.Second * 18000,
+		ReadHeaderTimeout: time.Second * 10,
+		WriteTimeout:      time.Second * 18000,
+		IdleTimeout:       time.Second * 1800,
+		MaxHeaderBytes:    4096,
+		StartTimeout:      time.Second * 2,
 	}
 }
